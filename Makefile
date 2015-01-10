@@ -1,7 +1,10 @@
 all: build
 
+bench:
+	cargo bench
+
 build:
-	cargo build --release
+	cargo build
 
 test:
 	cargo test
@@ -14,6 +17,7 @@ clean:
 
 .PHONY: \
 	all \
+	bench \
 	build \
 	clean \
 	test \
