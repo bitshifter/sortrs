@@ -1,7 +1,16 @@
+#![cfg(test)]
+extern crate test;
+
+use std::fmt::Show;
 use std::mem;
+use std::num::Int;
 use std::ptr;
 
-fn insertion_sort_impl<T, F>(first: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
+////////////////////////////////////////////////////////////////////////////////
+// Insertion sort (based off libstd collections slice version)
+////////////////////////////////////////////////////////////////////////////////
+
+fn insertsort_impl<T, F>(first: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
     // 1 <= i < len;
     for i in range(1, len) {
         // j satisfies: 0 <= j <= i;
@@ -40,13 +49,17 @@ fn insertion_sort_impl<T, F>(first: *mut T, len: int, lt: &F) where F: Fn(&T, &T
     }
 }
 
-pub fn insertion_sort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
-    insertion_sort_impl(v.as_mut_ptr(), v.len() as int, &lt);
+pub fn insertsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+    insertsort_impl(v.as_mut_ptr(), v.len() as int, &lt);
 }
 
-pub fn insertion_sort<T: PartialOrd>(v: &mut[T]) {
-    insertion_sort_by(v, |a, b| a.lt(b));
+pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
+    insertsort_by(v, |a, b| a.lt(b));
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Heap sort
+////////////////////////////////////////////////////////////////////////////////
 
 fn heapify<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
     let mut start = (size - 2) / 2;
@@ -81,7 +94,7 @@ fn shift_down<T, F>(ptr: *mut T, start: int, end: int, lt: &F) where F: Fn(&T, &
     }
 }
 
-fn heap_sort_impl<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapsort_impl<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
 	heapify(ptr, size, lt);
         let mut end = size - 1;
         while end > 0 {
@@ -93,83 +106,616 @@ fn heap_sort_impl<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> b
 	}
 }
 
-pub fn heap_sort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+pub fn heapsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
     let len = v.len() as int;
     if len > 0 {
 		let ptr = v.as_mut_ptr();
-		heap_sort_impl(ptr, len, &lt);
+		heapsort_impl(ptr, len, &lt);
     }
 }
 
-pub fn heap_sort<T: PartialOrd>(v: &mut[T]) {
-	heap_sort_by(v, |a, b| a.lt(b));
+pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
+	heapsort_by(v, |a, b| a.lt(b));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Introspection sort
+////////////////////////////////////////////////////////////////////////////////
+
+const THRESHOLD: int = 16;
+/*
+fn lg(n: int) -> int {
+    mem::size_of::<int>() as int * 8 - 1 - n.leading_zeros() as int
+}
+
+fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+    unsafe {
+        if lt(&*a, &*b) {
+            if lt(&*b, &*c) {
+                b
+            }
+            else if lt(&*a, &*c) {
+                c
+            }
+            else {
+                a
+            }
+        }
+        else if lt(&*a, &*c) {
+            a
+        }
+        else if lt(&*b, &*c) {
+            c
+        }
+        else {
+            b
+        }
+    }
+}
+
+fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+    unsafe {
+        loop {
+            while lt(&*first, &*pivot) {
+                first = first.offset(1);
+            }
+            last = last.offset(-1);
+            while lt(&*pivot, &*last) {
+                last = last.offset(-1);
+            }
+            if !((first as uint) < (last as uint)) {
+                return first;
+            }
+            ptr::swap(first, last);
+            first = first.offset(1);
+        }
+    }
+}
+
+fn partition_pivot<T, F>(ptr: *mut T, size: int, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+    unsafe {
+        let pivot = median_3(ptr.offset(1), ptr.offset(size / 2), ptr.offset(size - 1), lt);
+        ptr::swap(ptr, pivot);
+        partition(ptr.offset(1), ptr.offset(size), ptr, lt)
+    }
+}
+
+fn introsort_impl<T, F>(ptr: *mut T, size: int, mut depth_limit: int, lt: &F) where F: Fn(&T, &T) -> bool {
+    let mut end = size;
+    while end > THRESHOLD {
+        if depth_limit == 0 {
+            heapsort_impl(ptr, end, lt);
+            return;
+        }
+        depth_limit -= 1;
+        let pivot = partition_pivot(ptr, end, lt);
+        introsort_impl(pivot, end, depth_limit, lt);
+        end = (pivot as uint - ptr as uint) as int;
+    }
+}
+*/
+
+fn lg(n: uint) -> uint {
+	mem::size_of::<uint>() * 8 - 1 - n.leading_zeros()
+}
+
+fn ptr_diff<T>(a: *const T, b: *const T) -> int {
+    let ai = a as uint;
+    let bi = b as uint;
+    let d =  if ai < bi { bi - ai } else { ai - bi } / mem::size_of::<T>();
+    d as int
+}
+
+fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+    unsafe {
+        if lt(&*a, &*b) {
+            if lt(&*b, &*c) {
+                b
+            }
+            else if lt(&*a, &*c) {
+                c
+            }
+            else {
+                a
+            }
+        }
+        else if lt(&*a, &*c) {
+            a
+        }
+        else if lt(&*b, &*c) {
+            c
+        }
+        else {
+            b
+        }
+    }
+}
+
+fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -> *mut T
+        where F: Fn(&T, &T) -> bool {
+    unsafe {
+        loop {
+            while lt(&*first, &*pivot) {
+                first = first.offset(1);
+            }
+            last = last.offset(-1);
+            while lt(&*pivot, &*last) {
+                last = last.offset(-1);
+            }
+            if !((first as uint) < (last as uint)) {
+                return first;
+            }
+            ptr::swap(first, last);
+            first = first.offset(1);
+        }
+    }
+}
+
+fn partition_pivot<T, F>(first: *mut T, last: *mut T, lt: &F) -> *mut T
+        where F: Fn(&T, &T) -> bool {
+    unsafe {
+        let len = ptr_diff(first as *const T, last as *const T);
+        let pivot = median_3(first.offset(1), first.offset(len / 2), first.offset(len - 1), lt);
+        ptr::swap(first, pivot);
+        partition(first.offset(1), last, first, lt)
+    }
+}
+
+fn introsort_impl<T, F>(first: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
+    while ptr_diff(last as *const T, first as *const T) > THRESHOLD {
+        if depth_limit == 0 {
+            insertsort_impl(first, (last as uint - first as uint) as int, lt);
+            return;
+        }
+        depth_limit -= 1;
+        let pivot = partition_pivot(first, last, lt);
+        introsort_impl(pivot, last, depth_limit, lt);
+        last = pivot;
+    }
+}
+
+pub fn introsort_by<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+    let size = v.len() as int;
+    if size > 0 {
+        let ptr = v.as_mut_ptr();
+        unsafe {
+            introsort_impl(ptr, ptr.offset(size), 2 * lg(size as uint), &lt);
+        }
+        insertsort_impl(ptr, size, &lt);
+    }
+}
+
+pub fn introsort<T: PartialOrd + Show>(v: &mut[T]) {
+    introsort_by(v, |a, b| a.lt(b))
 }
 
 #[cfg(test)]
 mod tests {
     use std::rand::{Rng, thread_rng};
-	use insertion_sort;
-	use insertion_sort_by;
-	use heap_sort;
-	use heap_sort_by;
+    use insertsort;
+    use insertsort_by;
+    use heapsort;
+    use heapsort_by;
+    use introsort;
+    use introsort_by;
+
     #[test]
-    fn test_insertion_sort() {
+    fn test_insertsort() {
         for len in range(4u, 25) {
             for _ in range(0i, 100) {
                 let mut v = thread_rng().gen_iter::<uint>().take(len)
                                       .collect::<Vec<uint>>();
                 let mut v1 = v.clone();
 
-				println!("{}", v);
-                insertion_sort(v.as_mut_slice());
-				println!("{}", v);
+                insertsort(v.as_mut_slice());
                 assert!(v.as_slice().windows(2).all(|w| w[0] <= w[1]));
 
-                insertion_sort_by(v1.as_mut_slice(), |a, b| a.lt(b));
+                insertsort_by(v1.as_mut_slice(), |a, b| a.lt(b));
                 assert!(v1.as_slice().windows(2).all(|w| w[0] <= w[1]));
 
-                insertion_sort_by(v1.as_mut_slice(), |a, b| b.lt(a));
+                insertsort_by(v1.as_mut_slice(), |a, b| b.lt(a));
                 assert!(v1.as_slice().windows(2).all(|w| w[0] >= w[1]));
             }
         }
 
         // shouldn't panic
         let mut v: [uint; 0] = [];
-        insertion_sort(v.as_mut_slice());
+        insertsort(v.as_mut_slice());
 
         let mut v = [0xDEADBEEFu];
-        insertion_sort(v.as_mut_slice());
+        insertsort(v.as_mut_slice());
         assert!(v == [0xDEADBEEF]);
     }
 
     #[test]
-    fn test_heap_sort() {
+    fn test_heapsort() {
         for len in range(4u, 25) {
             for _ in range(0i, 100) {
                 let mut v = thread_rng().gen_iter::<uint>().take(len)
                                       .collect::<Vec<uint>>();
                 let mut v1 = v.clone();
 
-				println!("{}", v);
-                heap_sort(v.as_mut_slice());
-				println!("{}", v);
+                heapsort(v.as_mut_slice());
                 assert!(v.as_slice().windows(2).all(|w| w[0] <= w[1]));
 
-                heap_sort_by(v1.as_mut_slice(), |a, b| a.lt(b));
+                heapsort_by(v1.as_mut_slice(), |a, b| a.lt(b));
                 assert!(v1.as_slice().windows(2).all(|w| w[0] <= w[1]));
 
-                heap_sort_by(v1.as_mut_slice(), |a, b| b.lt(a));
+                heapsort_by(v1.as_mut_slice(), |a, b| b.lt(a));
                 assert!(v1.as_slice().windows(2).all(|w| w[0] >= w[1]));
             }
         }
 
         // shouldn't panic
         let mut v: [uint; 0] = [];
-        heap_sort(v.as_mut_slice());
+        heapsort(v.as_mut_slice());
 
         let mut v = [0xDEADBEEFu];
-        heap_sort(v.as_mut_slice());
+        heapsort(v.as_mut_slice());
+        assert!(v == [0xDEADBEEF]);
+    }
+
+    #[test]
+    fn test_introsort() {
+        for len in range(4u, 25) {
+            for _ in range(0i, 100) {
+                let mut v = thread_rng().gen_iter::<uint>().take(len)
+                                      .collect::<Vec<uint>>();
+                let mut v1 = v.clone();
+
+                introsort(v.as_mut_slice());
+                assert!(v.as_slice().windows(2).all(|w| w[0] <= w[1]));
+
+                introsort_by(v1.as_mut_slice(), |a, b| a.lt(b));
+                assert!(v1.as_slice().windows(2).all(|w| w[0] <= w[1]));
+
+                introsort_by(v1.as_mut_slice(), |a, b| b.lt(a));
+                assert!(v1.as_slice().windows(2).all(|w| w[0] >= w[1]));
+            }
+        }
+
+        // shouldn't panic
+        let mut v: [uint; 0] = [];
+        introsort(v.as_mut_slice());
+
+        let mut v = [0xDEADBEEFu];
+        introsort(v.as_mut_slice());
         assert!(v == [0xDEADBEEF]);
     }
 }
 
+#[cfg(test)]
+mod bench {
+    use heapsort;
+    use insertsort;
+    use introsort;
+    use std::mem;
+    use std::rand::{weak_rng, Rng};
+    use test::{ Bencher };
+
+    type BigSortable = (u64,u64,u64,u64);
+
+    #[bench]
+    fn introsort_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(5).collect::<Vec<u64>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn introsort_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(100).collect::<Vec<u64>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn introsort_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(10000).collect::<Vec<u64>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn introsort_sorted(b: &mut Bencher) {
+        let mut v = range(0u, 10000).collect::<Vec<_>>();
+        b.iter(|| {
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn introsort_big_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(5)
+                           .collect::<Vec<BigSortable>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn introsort_big_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(100)
+                           .collect::<Vec<BigSortable>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn introsort_big_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(10000)
+                           .collect::<Vec<BigSortable>>();
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn introsort_big_sorted(b: &mut Bencher) {
+        let mut v = range(0, 10000u).map(|i| (i, i, i, i)).collect::<Vec<_>>();
+        b.iter(|| {
+            introsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn insertsort_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(5).collect::<Vec<u64>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(100).collect::<Vec<u64>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(10000).collect::<Vec<u64>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_sorted(b: &mut Bencher) {
+        let mut v = range(0u, 10000).collect::<Vec<_>>();
+        b.iter(|| {
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn insertsort_big_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(5)
+                           .collect::<Vec<BigSortable>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_big_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(100)
+                           .collect::<Vec<BigSortable>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_big_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(10000)
+                           .collect::<Vec<BigSortable>>();
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn insertsort_big_sorted(b: &mut Bencher) {
+        let mut v = range(0, 10000u).map(|i| (i, i, i, i)).collect::<Vec<_>>();
+        b.iter(|| {
+            insertsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn heapsort_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(5).collect::<Vec<u64>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(100).collect::<Vec<u64>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(10000).collect::<Vec<u64>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_sorted(b: &mut Bencher) {
+        let mut v = range(0u, 10000).collect::<Vec<_>>();
+        b.iter(|| {
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn heapsort_big_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(5)
+                           .collect::<Vec<BigSortable>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 5 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_big_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(100)
+                           .collect::<Vec<BigSortable>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 100 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_big_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(10000)
+                           .collect::<Vec<BigSortable>>();
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = 10000 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn heapsort_big_sorted(b: &mut Bencher) {
+        let mut v = range(0, 10000u).map(|i| (i, i, i, i)).collect::<Vec<_>>();
+        b.iter(|| {
+            heapsort(v.as_mut_slice());
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn sort_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(5).collect::<Vec<u64>>();
+            v.as_mut_slice().sort();
+        });
+        b.bytes = 5 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn sort_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(100).collect::<Vec<u64>>();
+            v.as_mut_slice().sort();
+        });
+        b.bytes = 100 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn sort_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<u64>().take(10000).collect::<Vec<u64>>();
+            v.as_mut_slice().sort();
+        });
+        b.bytes = 10000 * mem::size_of::<u64>() as u64;
+    }
+
+    #[bench]
+    fn sort_sorted(b: &mut Bencher) {
+        let mut v = range(0u, 10000).collect::<Vec<_>>();
+        b.iter(|| {
+            v.sort();
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+
+    #[bench]
+    fn sort_big_random_small(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(5)
+                           .collect::<Vec<BigSortable>>();
+            v.sort();
+        });
+        b.bytes = 5 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn sort_big_random_medium(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(100)
+                           .collect::<Vec<BigSortable>>();
+            v.sort();
+        });
+        b.bytes = 100 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn sort_big_random_large(b: &mut Bencher) {
+        let mut rng = weak_rng();
+        b.iter(|| {
+            let mut v = rng.gen_iter::<BigSortable>().take(10000)
+                           .collect::<Vec<BigSortable>>();
+            v.sort();
+        });
+        b.bytes = 10000 * mem::size_of::<BigSortable>() as u64;
+    }
+
+    #[bench]
+    fn sort_big_sorted(b: &mut Bencher) {
+        let mut v = range(0, 10000u).map(|i| (i, i, i, i)).collect::<Vec<_>>();
+        b.iter(|| {
+            v.sort();
+        });
+        b.bytes = (v.len() * mem::size_of_val(&v[0])) as u64;
+    }
+}
