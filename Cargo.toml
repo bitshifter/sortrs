@@ -3,3 +3,11 @@
 name = "sortrs"
 version = "0.0.1"
 authors = ["Cameron Hart <cam@bitshifter.net.nz>"]
+license = "MIT/Apache-2.0"
+repository = "https://github.com/bitshifter/sortrs"
+homepage = "https://github.com/bitshifter/sortrs"
+readme = "README.md"
+keywords = ["sort", "sorting"]
+description = """
+An introspective sort implementation.
+"""
