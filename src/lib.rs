@@ -6,7 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![cfg(test)]
 extern crate test;
 
 use std::mem;
@@ -283,7 +282,6 @@ pub fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -
 /// introsort_by(v, |a, b| b.lt(a));
 /// assert!(v == [5, 4, 3, 2, 1]);
 /// ```
-#[inline]
 pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
     introsort_impl(v, lt);
 }
@@ -300,7 +298,6 @@ pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> 
 /// v.sort();
 /// assert!(v == [-5i, -3, 1, 2, 4]);
 /// ```
-#[inline]
 pub fn introsort<T: PartialOrd>(v: &mut[T]) {
     introsort_impl(v, |a, b| a.lt(b))
 }
