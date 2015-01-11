@@ -16,9 +16,9 @@ use std::ptr;
 // Insertion sort (based off libstd collections slice version)
 ////////////////////////////////////////////////////////////////////////////////
 
-fn insertsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
     // 1 <= i < len;
-    for i in range(1, len) {
+    for i in (1..len) {
         // j satisfies: 0 <= j <= i;
         let mut j = i;
         unsafe {
@@ -45,7 +45,7 @@ fn insertsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> b
                 let tmp = ptr::read(read_ptr);
                 ptr::copy_memory(ptr.offset(j + 1),
                                  &*ptr.offset(j),
-                                 (i - j) as uint);
+                                 (i - j) as usize);
                 ptr::copy_nonoverlapping_memory(ptr.offset(j),
                                                 &tmp as *const T,
                                                 1);
@@ -56,7 +56,7 @@ fn insertsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> b
 }
 
 pub fn insertsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
-    insertsort_impl(v.as_mut_ptr(), v.len() as int, &lt);
+    insertsort_impl(v.as_mut_ptr(), v.len() as isize, &lt);
 }
 
 pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
@@ -69,7 +69,7 @@ pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
 
 /// Builds a heap in the array so that the largest element is at the root.
 /// Operates on data in-place.
-fn heapify<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
     // start is assigned to the index of the last parent node
     let mut start = (len - 2) / 2;
     let end = len - 1;
@@ -85,7 +85,7 @@ fn heapify<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
 
 /// Repair the heap whose root element is at index start.
 /// Assumes a valid heap struture.
-fn shift_down<T, F>(ptr: *mut T, start: int, end: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F) where F: Fn(&T, &T) -> bool {
     let mut root = start;
     let mut next_root = root * 2;
     // while the root has at least one child
@@ -116,7 +116,7 @@ fn shift_down<T, F>(ptr: *mut T, start: int, end: int, lt: &F) where F: Fn(&T, &
 }
 
 /// Internal heapsort implementation
-fn heapsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
     // build the heap in-place so the largest value is at the root
     heapify(ptr, len, lt);
     let mut end = len - 1;
@@ -131,7 +131,7 @@ fn heapsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> boo
 }
 
 pub fn heapsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
-    let len = v.len() as int;
+    let len = v.len() as isize;
     if len > 0 {
         let ptr = v.as_mut_ptr();
         heapsort_impl(ptr, len, &lt);
@@ -146,17 +146,17 @@ pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
 // Introspection sort
 ////////////////////////////////////////////////////////////////////////////////
 
-const THRESHOLD: int = 16;
+const THRESHOLD: isize = 16;
 
 #[inline]
-fn lg(n: uint) -> uint {
-    mem::size_of::<uint>() * 8 - 1 - n.leading_zeros()
+fn lg(n: usize) -> usize {
+    mem::size_of::<usize>() * 8 - 1 - n.leading_zeros()
 }
 
 #[inline]
 /// Calculates the number of elements between the first and last pointers
-fn ptr_distance<T>(last: *const T, first: *const T) -> int {
-    ((last as uint - first as uint) / mem::size_of::<T>()) as int
+fn ptr_distance<T>(last: *const T, first: *const T) -> isize {
+    ((last as usize - first as usize) / mem::size_of::<T>()) as isize
 }
 
 #[inline]
@@ -200,7 +200,7 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
                 last = last.offset(-1);
             }
             // if first and last have met then partitioning is complete
-            if !((first as uint) < (last as uint)) {
+            if !((first as usize) < (last as usize)) {
                 return first;
             }
             // swap the first and last elements to be on the right side of the pivot
@@ -212,7 +212,7 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
 }
 
 #[inline]
-fn partition_pivot<T, F>(ptr: *mut T, len: int, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
     unsafe {
         // choose a pivot based on media of 3 elements
         let pivot = median_3(ptr.offset(1), ptr.offset(len / 2), ptr.offset(len - 1), lt);
@@ -223,7 +223,7 @@ fn partition_pivot<T, F>(ptr: *mut T, len: int, lt: &F) -> *mut T where F: Fn(&T
     }
 }
 
-fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
+fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, lt: &F) where F: Fn(&T, &T) -> bool {
     let mut len = ptr_distance(last, ptr);
     // once threshold is reached rely on final insertion sort pass
     while len > THRESHOLD {
@@ -243,12 +243,12 @@ fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: uint, lt
 }
 
 #[inline]
-pub fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
-    let len = v.len() as int;
+fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+    let len = v.len() as isize;
     if len > 0 {
         let ptr = v.as_mut_ptr();
         unsafe {
-            introsort_loop(ptr, ptr.offset(len), 2 * lg(len as uint), &lt);
+            introsort_loop(ptr, ptr.offset(len), 2 * lg(len as usize), &lt);
         }
         // insertsort mostly sorted data
         insertsort_impl(ptr, len, &lt);
@@ -320,8 +320,8 @@ mod tests {
     fn test_insertsort() {
         for len in range(4u, 25) {
             for _ in range(0i, 100) {
-                let mut v = thread_rng().gen_iter::<uint>().take(len)
-                                      .collect::<Vec<uint>>();
+                let mut v = thread_rng().gen_iter::<usize>().take(len)
+                                      .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
 
                 insertsort(v.as_mut_slice());
@@ -336,7 +336,7 @@ mod tests {
         }
 
         // shouldn't panic
-        let mut v: [uint; 0] = [];
+        let mut v: [usize; 0] = [];
         insertsort(v.as_mut_slice());
 
         let mut v = [0xDEADBEEFu];
@@ -348,8 +348,8 @@ mod tests {
     fn test_heapsort() {
         for len in range(4u, 25) {
             for _ in range(0i, 100) {
-                let mut v = thread_rng().gen_iter::<uint>().take(len)
-                                      .collect::<Vec<uint>>();
+                let mut v = thread_rng().gen_iter::<usize>().take(len)
+                                      .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
 
                 heapsort(v.as_mut_slice());
@@ -364,7 +364,7 @@ mod tests {
         }
 
         // shouldn't panic
-        let mut v: [uint; 0] = [];
+        let mut v: [usize; 0] = [];
         heapsort(v.as_mut_slice());
 
         let mut v = [0xDEADBEEFu];
@@ -376,8 +376,8 @@ mod tests {
     fn test_introsort() {
         for len in range(4u, 25) {
             for _ in range(0i, 100) {
-                let mut v = thread_rng().gen_iter::<uint>().take(len)
-                                      .collect::<Vec<uint>>();
+                let mut v = thread_rng().gen_iter::<usize>().take(len)
+                                      .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
 
                 introsort(v.as_mut_slice());
@@ -392,7 +392,7 @@ mod tests {
         }
 
         // shouldn't panic
-        let mut v: [uint; 0] = [];
+        let mut v: [usize; 0] = [];
         introsort(v.as_mut_slice());
 
         let mut v = [0xDEADBEEFu];
@@ -447,7 +447,7 @@ mod bench {
         b.bytes = 10000 * mem::size_of::<u64>() as u64;
     }
 
-    fn bench_sorted<F>(b: &mut Bencher, sortfn: F) where F: Fn(&mut [uint]) {
+    fn bench_sorted<F>(b: &mut Bencher, sortfn: F) where F: Fn(&mut [usize]) {
         let mut v = range(0u, 10000).collect::<Vec<_>>();
         b.iter(|| {
             sortfn(v.as_mut_slice());
