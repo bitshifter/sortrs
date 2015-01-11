@@ -142,17 +142,17 @@ pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
 
 const THRESHOLD: int = 16;
 
+#[inline]
 fn lg(n: uint) -> uint {
-	mem::size_of::<uint>() * 8 - 1 - n.leading_zeros()
+    mem::size_of::<uint>() * 8 - 1 - n.leading_zeros()
 }
 
-fn ptr_diff<T>(a: *const T, b: *const T) -> int {
-    let ai = a as uint;
-    let bi = b as uint;
-    let d =  if ai < bi { bi - ai } else { ai - bi } / mem::size_of::<T>();
-    d as int
+#[inline]
+fn ptr_distance<T>(last: *const T, first: *const T) -> int {
+    ((last as uint - first as uint) / mem::size_of::<T>()) as int
 }
 
+#[inline]
 fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
     unsafe {
         if lt(&*a, &*b) {
@@ -178,6 +178,7 @@ fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn
     }
 }
 
+#[inline]
 fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -> *mut T
         where F: Fn(&T, &T) -> bool {
     unsafe {
@@ -198,42 +199,50 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
     }
 }
 
+#[inline]
 fn partition_pivot<T, F>(first: *mut T, last: *mut T, lt: &F) -> *mut T
         where F: Fn(&T, &T) -> bool {
     unsafe {
-        let len = ptr_diff(first as *const T, last as *const T);
+        let len = ptr_distance(last as *const T, first as *const T);
         let pivot = median_3(first.offset(1), first.offset(len / 2), first.offset(len - 1), lt);
         ptr::swap(first, pivot);
         partition(first.offset(1), last, first, lt)
     }
 }
 
-fn introsort_impl<T, F>(first: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
-    while ptr_diff(last as *const T, first as *const T) > THRESHOLD {
+fn introsort_loop<T, F>(first: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
+    while ptr_distance(last as *const T, first as *const T) > THRESHOLD {
         if depth_limit == 0 {
-            insertsort_impl(first, (last as uint - first as uint) as int, lt);
+            heapsort_impl(first, ptr_distance(last as *const T, first as *const T), lt);
             return;
         }
         depth_limit -= 1;
         let pivot = partition_pivot(first, last, lt);
-        introsort_impl(pivot, last, depth_limit, lt);
+        introsort_loop(pivot, last, depth_limit, lt);
         last = pivot;
     }
 }
 
-pub fn introsort_by<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+#[inline]
+pub fn introsort_impl<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
     let size = v.len() as int;
     if size > 0 {
         let ptr = v.as_mut_ptr();
         unsafe {
-            introsort_impl(ptr, ptr.offset(size), 2 * lg(size as uint), &lt);
+            introsort_loop(ptr, ptr.offset(size), 2 * lg(size as uint), &lt);
         }
         insertsort_impl(ptr, size, &lt);
     }
 }
 
+#[inline]
+pub fn introsort_by<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+    introsort_impl(v, lt);
+}
+
+#[inline]
 pub fn introsort<T: PartialOrd + Show>(v: &mut[T]) {
-    introsort_by(v, |a, b| a.lt(b))
+    introsort_impl(v, |a, b| a.lt(b))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
