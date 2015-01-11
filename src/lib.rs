@@ -546,48 +546,48 @@ mod bench {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // std::collections::slice sort benchmarking
+    // Merge sort (via std::slice::SliceExt::sort) benchmarking
     ////////////////////////////////////////////////////////////////////////////
 
-    fn stdsort<T: Ord>(v: &mut[T]) { v.sort(); }
+    fn mergesort<T: Ord>(v: &mut[T]) { v.sort(); }
 
     #[bench]
     fn stdsort_random_small(b: &mut Bencher) {
-        bench_random_small(b, stdsort);
+        bench_random_small(b, mergesort);
     }
 
     #[bench]
     fn stdsort_random_medium(b: &mut Bencher) {
-        bench_random_medium(b, stdsort);
+        bench_random_medium(b, mergesort);
     }
 
     #[bench]
     fn stdsort_random_large(b: &mut Bencher) {
-        bench_random_large(b, stdsort);
+        bench_random_large(b, mergesort);
     }
 
     #[bench]
     fn stdsort_sorted(b: &mut Bencher) {
-        bench_sorted(b, stdsort);
+        bench_sorted(b, mergesort);
     }
 
     #[bench]
     fn stdsort_big_random_small(b: &mut Bencher) {
-        bench_big_random_small(b, stdsort);
+        bench_big_random_small(b, mergesort);
     }
 
     #[bench]
     fn stdsort_big_random_medium(b: &mut Bencher) {
-        bench_big_random_medium(b, stdsort);
+        bench_big_random_medium(b, mergesort);
     }
 
     #[bench]
     fn stdsort_big_random_large(b: &mut Bencher) {
-        bench_big_random_large(b, stdsort);
+        bench_big_random_large(b, mergesort);
     }
 
     #[bench]
     fn stdsort_big_sorted(b: &mut Bencher) {
-        bench_big_sorted(b, stdsort);
+        bench_big_sorted(b, mergesort);
     }
 }
