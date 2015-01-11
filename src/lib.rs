@@ -61,61 +61,79 @@ pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
 // Heap sort
 ////////////////////////////////////////////////////////////////////////////////
 
+/// Builds a heap in the array so that the largest element is at the root.
+/// Operates on data in-place.
 fn heapify<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
+    // start is assigned to the index of the last parent node
     let mut start = (size - 2) / 2;
     let end = size - 1;
     while start >= 0 {
+        // shift down the node at index start such that all nodes below start
+        // are in heap order
         shift_down(ptr, start, end, lt);
+        // go up the next parent node
         start = start - 1;
     }
+    // after shifting down the root all nodes are in heap order
 }
 
+/// Repair the heap whose root element is at index start.
+/// Assumes a valid heap struture.
 fn shift_down<T, F>(ptr: *mut T, start: int, end: int, lt: &F) where F: Fn(&T, &T) -> bool {
     let mut root = start;
-    let mut next_child = root * 2 + 1;
-    while next_child <= end {
-        let child = next_child;
+    let mut next_root = root * 2;
+    // while the root has at least one child
+    while next_root < end {
+        // left child
+        let left_child = next_root + 1;
+        // keep track of child to swap with
         let mut swap = root;
         unsafe {
-            if lt(&*ptr.offset(swap), &*ptr.offset(child)) {
-                swap = child;
+            if lt(&*ptr.offset(swap), &*ptr.offset(left_child)) {
+                swap = left_child;
             }
-            next_child = child + 1;
-            if next_child <= end && lt(&*ptr.offset(swap), &*ptr.offset(next_child)) {
-                swap = next_child;
+            // if there is a right child and it is greater
+            let right_child = left_child + 1;
+            if right_child <= end && lt(&*ptr.offset(swap), &*ptr.offset(right_child)) {
+                swap = right_child;
             }
             if swap == root {
+                // the root holds the largest element
                 return;
             }
             ptr::swap(ptr.offset(root), ptr.offset(swap));
         }
+        // repeat to continue shifting down the child
         root = swap;
-        next_child = root * 2 + 1;
+        next_root = root * 2;
     }
 }
 
+/// Internal heapsort implementation
 fn heapsort_impl<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
-	heapify(ptr, size, lt);
-        let mut end = size - 1;
-        while end > 0 {
-            unsafe {
-                ptr::swap(ptr.offset(end), ptr);
-            }
-            end = end - 1;
-            shift_down(ptr, 0, end, lt);
-	}
+    // build the heap in-place so the largest value is at the root
+    heapify(ptr, size, lt);
+    let mut end = size - 1;
+    while end > 0 {
+        // ptr is the root and largest value, swap it to the end of the sorted elements
+        unsafe { ptr::swap(ptr.offset(end), ptr); }
+        // the heap size is reduced by one
+        end = end - 1;
+        // the swap invalidated the heap, so restore it
+        shift_down(ptr, 0, end, lt);
+    }
 }
 
 pub fn heapsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
     let len = v.len() as int;
     if len > 0 {
-		let ptr = v.as_mut_ptr();
-		heapsort_impl(ptr, len, &lt);
+        let ptr = v.as_mut_ptr();
+        heapsort_impl(ptr, len, &lt);
     }
 }
 
 pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
-	heapsort_by(v, |a, b| a.lt(b));
+    heapsort_by(v, |a, b| a.lt(b));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
