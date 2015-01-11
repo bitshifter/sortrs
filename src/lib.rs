@@ -30,21 +30,21 @@ use std::ptr;
 // Insertion sort (based off libstd collections slice version)
 ////////////////////////////////////////////////////////////////////////////////
 
-fn insertsort_impl<T, F>(first: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn insertsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
     // 1 <= i < len;
     for i in range(1, len) {
         // j satisfies: 0 <= j <= i;
         let mut j = i;
         unsafe {
             // `i` is in bounds.
-            let read_ptr = first.offset(i) as *const T;
+            let read_ptr = ptr.offset(i) as *const T;
 
             // find where to insert, we need to do strict <,
             // rather than <=, to maintain stability.
 
             // 0 <= j - 1 < len, so .offset(j - 1) is in bounds.
             while j > 0 &&
-                    lt(&*read_ptr, &*first.offset(j - 1)) {
+                    lt(&*read_ptr, &*ptr.offset(j - 1)) {
                 j -= 1;
             }
 
@@ -57,10 +57,10 @@ fn insertsort_impl<T, F>(first: *mut T, len: int, lt: &F) where F: Fn(&T, &T) ->
 
             if i != j {
                 let tmp = ptr::read(read_ptr);
-                ptr::copy_memory(first.offset(j + 1),
-                                 &*first.offset(j),
+                ptr::copy_memory(ptr.offset(j + 1),
+                                 &*ptr.offset(j),
                                  (i - j) as uint);
-                ptr::copy_nonoverlapping_memory(first.offset(j),
+                ptr::copy_nonoverlapping_memory(ptr.offset(j),
                                                 &tmp as *const T,
                                                 1);
                 mem::forget(tmp);
@@ -83,10 +83,10 @@ pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
 
 /// Builds a heap in the array so that the largest element is at the root.
 /// Operates on data in-place.
-fn heapify<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapify<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
     // start is assigned to the index of the last parent node
-    let mut start = (size - 2) / 2;
-    let end = size - 1;
+    let mut start = (len - 2) / 2;
+    let end = len - 1;
     while start >= 0 {
         // shift down the node at index start such that all nodes below start
         // are in heap order
@@ -130,10 +130,10 @@ fn shift_down<T, F>(ptr: *mut T, start: int, end: int, lt: &F) where F: Fn(&T, &
 }
 
 /// Internal heapsort implementation
-fn heapsort_impl<T, F>(ptr: *mut T, size: int, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapsort_impl<T, F>(ptr: *mut T, len: int, lt: &F) where F: Fn(&T, &T) -> bool {
     // build the heap in-place so the largest value is at the root
-    heapify(ptr, size, lt);
-    let mut end = size - 1;
+    heapify(ptr, len, lt);
+    let mut end = len - 1;
     while end > 0 {
         // ptr is the root and largest value, swap it to the end of the sorted elements
         unsafe { ptr::swap(ptr.offset(end), ptr); }
