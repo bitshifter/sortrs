@@ -200,38 +200,38 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
 }
 
 #[inline]
-fn partition_pivot<T, F>(first: *mut T, last: *mut T, lt: &F) -> *mut T
-        where F: Fn(&T, &T) -> bool {
+fn partition_pivot<T, F>(ptr: *mut T, len: int, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
     unsafe {
-        let len = ptr_distance(last as *const T, first as *const T);
-        let pivot = median_3(first.offset(1), first.offset(len / 2), first.offset(len - 1), lt);
-        ptr::swap(first, pivot);
-        partition(first.offset(1), last, first, lt)
+        let pivot = median_3(ptr.offset(1), ptr.offset(len / 2), ptr.offset(len - 1), lt);
+        ptr::swap(ptr, pivot);
+        partition(ptr.offset(1), ptr.offset(len), ptr, lt)
     }
 }
 
-fn introsort_loop<T, F>(first: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
-    while ptr_distance(last as *const T, first as *const T) > THRESHOLD {
+fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
+    let mut len = ptr_distance(last, ptr);
+    while len > THRESHOLD {
         if depth_limit == 0 {
-            heapsort_impl(first, ptr_distance(last as *const T, first as *const T), lt);
+            heapsort_impl(ptr, len, lt);
             return;
         }
         depth_limit -= 1;
-        let pivot = partition_pivot(first, last, lt);
+        let pivot = partition_pivot(ptr, len, lt);
         introsort_loop(pivot, last, depth_limit, lt);
+        len = ptr_distance(pivot, ptr);
         last = pivot;
     }
 }
 
 #[inline]
-pub fn introsort_impl<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
-    let size = v.len() as int;
-    if size > 0 {
+pub fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+    let len = v.len() as int;
+    if len > 0 {
         let ptr = v.as_mut_ptr();
         unsafe {
-            introsort_loop(ptr, ptr.offset(size), 2 * lg(size as uint), &lt);
+            introsort_loop(ptr, ptr.offset(len), 2 * lg(len as uint), &lt);
         }
-        insertsort_impl(ptr, size, &lt);
+        insertsort_impl(ptr, len, &lt);
     }
 }
 
