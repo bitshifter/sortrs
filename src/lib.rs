@@ -148,6 +148,7 @@ fn lg(n: uint) -> uint {
 }
 
 #[inline]
+/// Calculates the number of elements between the first and last pointers
 fn ptr_distance<T>(last: *const T, first: *const T) -> int {
     ((last as uint - first as uint) / mem::size_of::<T>()) as int
 }
@@ -183,17 +184,22 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
         where F: Fn(&T, &T) -> bool {
     unsafe {
         loop {
+            // find first element greater than the pivot
             while lt(&*first, &*pivot) {
                 first = first.offset(1);
             }
+            // find last element smaller than the pivot
             last = last.offset(-1);
             while lt(&*pivot, &*last) {
                 last = last.offset(-1);
             }
+            // if first and last have met then partitioning is complete
             if !((first as uint) < (last as uint)) {
                 return first;
             }
+            // swap the first and last elements to be on the right side of the pivot
             ptr::swap(first, last);
+            // move to the next element
             first = first.offset(1);
         }
     }
@@ -202,21 +208,28 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
 #[inline]
 fn partition_pivot<T, F>(ptr: *mut T, len: int, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
     unsafe {
+        // choose a pivot based on media of 3 elements
         let pivot = median_3(ptr.offset(1), ptr.offset(len / 2), ptr.offset(len - 1), lt);
+        // swap the pivot with the first element so it's already partitioned
         ptr::swap(ptr, pivot);
-        partition(ptr.offset(1), ptr.offset(len), ptr, lt)
+        // partition elements on either side of the pivot
+        return partition(ptr.offset(1), ptr.offset(len), ptr, lt);
     }
 }
 
 fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: uint, lt: &F) where F: Fn(&T, &T) -> bool {
     let mut len = ptr_distance(last, ptr);
+    // once threshold is reached rely on final insertion sort pass
     while len > THRESHOLD {
+        // if the depth limit has been reached switch to heapsort
         if depth_limit == 0 {
             heapsort_impl(ptr, len, lt);
             return;
         }
         depth_limit -= 1;
+        // choose partition and pivot
         let pivot = partition_pivot(ptr, len, lt);
+        // introsort the elements after the pivot
         introsort_loop(pivot, last, depth_limit, lt);
         len = ptr_distance(pivot, ptr);
         last = pivot;
@@ -231,17 +244,57 @@ pub fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -
         unsafe {
             introsort_loop(ptr, ptr.offset(len), 2 * lg(len as uint), &lt);
         }
+        // insertsort mostly sorted data
         insertsort_impl(ptr, len, &lt);
     }
 }
 
+///
+/// Sorts the slice, in place, using `lt` to compare elements.
+///
+/// The order of equal elements is not guaranteed to be preserved.
+///
+/// This sort is `O(n log n)` worst-case and stable.
+///
+/// The sort is implemented using the Introsort algorithm. Introsort or
+/// introspective sort is a hybrid sorting algorithm that provides both fast
+/// average performance and (asymptotically) optimal worst-case performance.
+/// It begins with quicksort and switches to heapsort when the recursion depth
+/// exceeds a level based on (the logarithm of) the number of elements being
+/// sorted. This combines the good parts of both algorithms, with practical
+/// performance comparable to quicksort on typical data sets and worst-case
+/// O(n log n) runtime due to the heap sort.
+///
+/// # Examples
+///
+/// ```rust
+/// let mut v = [5i, 4, 1, 3, 2];
+/// introsort_by(v, |a, b| a.lt(b));
+/// assert!(v == [1, 2, 3, 4, 5]);
+///
+/// // reverse sorting
+/// introsort_by(v, |a, b| b.lt(a));
+/// assert!(v == [5, 4, 3, 2, 1]);
+/// ```
 #[inline]
-pub fn introsort_by<T: PartialOrd + Show, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
     introsort_impl(v, lt);
 }
 
+/// Sorts the slice, in place.
+///
+/// This is equivalent to `self.sort_by(|a, b| a.cmp(b))`.
+///
+/// # Examples
+///
+/// ```rust
+/// let mut v = [-5i, 4, 1, -3, 2];
+///
+/// v.sort();
+/// assert!(v == [-5i, -3, 1, 2, 4]);
+/// ```
 #[inline]
-pub fn introsort<T: PartialOrd + Show>(v: &mut[T]) {
+pub fn introsort<T: PartialOrd>(v: &mut[T]) {
     introsort_impl(v, |a, b| a.lt(b))
 }
 
