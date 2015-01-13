@@ -148,8 +148,6 @@ pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
 // Introspection sort
 ////////////////////////////////////////////////////////////////////////////////
 
-const THRESHOLD: isize = 16;
-
 #[inline]
 fn lg(n: usize) -> usize {
     mem::size_of::<usize>() * 8 - 1 - n.leading_zeros()
@@ -226,8 +224,10 @@ fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T where F: Fn(
 }
 
 fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, lt: &F) where F: Fn(&T, &T) -> bool {
+    // Threshold at which we stop and let the insertsort finish off
+    const THRESHOLD: isize = 32;
+
     let mut len = ptr_distance(last, ptr);
-    // once threshold is reached rely on final insertion sort pass
     while len > THRESHOLD {
         // if the depth limit has been reached switch to heapsort
         if depth_limit == 0 {
