@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(unstable)]
+
 extern crate test;
 
 use std::mem;
@@ -274,12 +276,12 @@ fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bo
 /// # Examples
 ///
 /// ```rust
-/// let mut v = [5i, 4, 1, 3, 2];
-/// introsort_by(v, |a, b| a.lt(b));
+/// let mut v = [5is, 4, 1, 3, 2];
+/// sortrs::introsort_by(v.as_mut_slice(), |a, b| a.lt(b));
 /// assert!(v == [1, 2, 3, 4, 5]);
 ///
 /// // reverse sorting
-/// introsort_by(v, |a, b| b.lt(a));
+/// sortrs::introsort_by(v.as_mut_slice(), |a, b| b.lt(a));
 /// assert!(v == [5, 4, 3, 2, 1]);
 /// ```
 pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
@@ -293,10 +295,10 @@ pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> 
 /// # Examples
 ///
 /// ```rust
-/// let mut v = [-5i, 4, 1, -3, 2];
+/// let mut v = [-5is, 4, 1, -3, 2];
 ///
-/// v.sort();
-/// assert!(v == [-5i, -3, 1, 2, 4]);
+/// sortrs::introsort(v.as_mut_slice());
+/// assert!(v == [-5is, -3, 1, 2, 4]);
 /// ```
 pub fn introsort<T: PartialOrd>(v: &mut[T]) {
     introsort_impl(v, |a, b| a.lt(b))
@@ -318,8 +320,8 @@ mod tests {
 
     #[test]
     fn test_insertsort() {
-        for len in range(4u, 25) {
-            for _ in range(0i, 100) {
+        for len in (4us..25) {
+            for _ in (0..100) {
                 let mut v = thread_rng().gen_iter::<usize>().take(len)
                                       .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
@@ -339,15 +341,15 @@ mod tests {
         let mut v: [usize; 0] = [];
         insertsort(v.as_mut_slice());
 
-        let mut v = [0xDEADBEEFu];
+        let mut v = [0xDEADBEEFu32];
         insertsort(v.as_mut_slice());
         assert!(v == [0xDEADBEEF]);
     }
 
     #[test]
     fn test_heapsort() {
-        for len in range(4u, 25) {
-            for _ in range(0i, 100) {
+        for len in (4us..25) {
+            for _ in (0..100) {
                 let mut v = thread_rng().gen_iter::<usize>().take(len)
                                       .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
@@ -367,15 +369,15 @@ mod tests {
         let mut v: [usize; 0] = [];
         heapsort(v.as_mut_slice());
 
-        let mut v = [0xDEADBEEFu];
+        let mut v = [0xDEADBEEFu32];
         heapsort(v.as_mut_slice());
         assert!(v == [0xDEADBEEF]);
     }
 
     #[test]
     fn test_introsort() {
-        for len in range(4u, 25) {
-            for _ in range(0i, 100) {
+        for len in (4us..25) {
+            for _ in (0..100) {
                 let mut v = thread_rng().gen_iter::<usize>().take(len)
                                       .collect::<Vec<usize>>();
                 let mut v1 = v.clone();
@@ -395,7 +397,7 @@ mod tests {
         let mut v: [usize; 0] = [];
         introsort(v.as_mut_slice());
 
-        let mut v = [0xDEADBEEFu];
+        let mut v = [0xDEADBEEFu32];
         introsort(v.as_mut_slice());
         assert!(v == [0xDEADBEEF]);
     }
@@ -447,8 +449,8 @@ mod bench {
         b.bytes = 10000 * mem::size_of::<u64>() as u64;
     }
 
-    fn bench_sorted<F>(b: &mut Bencher, sortfn: F) where F: Fn(&mut [usize]) {
-        let mut v = range(0u, 10000).collect::<Vec<_>>();
+    fn bench_sorted<F>(b: &mut Bencher, sortfn: F) where F: Fn(&mut [u64]) {
+        let mut v = (0u64..10000).collect::<Vec<_>>();
         b.iter(|| {
             sortfn(v.as_mut_slice());
         });
@@ -486,7 +488,7 @@ mod bench {
     }
 
     fn bench_big_sorted<F>(b: &mut Bencher, sortfn: F) where F: Fn(&mut [BigSortable]) {
-        let mut v = range(0, 10000u64).map(|i| (i, i, i, i)).collect::<Vec<_>>();
+        let mut v = (0..10000u64).map(|i| (i, i, i, i)).collect::<Vec<_>>();
         b.iter(|| {
             sortfn(v.as_mut_slice());
         });
