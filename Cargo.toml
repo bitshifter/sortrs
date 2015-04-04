@@ -11,3 +11,7 @@ keywords = ["sort", "sorting"]
 description = """
 An introspective sort implementation.
 """
+
+[dependencies]
+
+rand = "0.3.7"
