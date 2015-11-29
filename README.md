@@ -1,6 +1,8 @@
 sortrs
 ======
 
+[![Build Status](https://travis-ci.org/bitshifter/sortrs.svg)](https://travis-ci.org/bitshifter/sortrs)
+
 A fast unstable sort for Rust using introspective sort.
 
 The default Rust sort is provided `std::slice::SliceExt::sort_by`. It is
