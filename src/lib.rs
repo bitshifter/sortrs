@@ -266,7 +266,7 @@ fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bo
 /// # Examples
 ///
 /// ```rust
-/// let mut v = [5is, 4, 1, 3, 2];
+/// let mut v = [5, 4, 1, 3, 2];
 /// sortrs::introsort_by(&mut v, |a, b| a.lt(b));
 /// assert!(v == [1, 2, 3, 4, 5]);
 ///
@@ -285,10 +285,10 @@ pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> 
 /// # Examples
 ///
 /// ```rust
-/// let mut v = [-5is, 4, 1, -3, 2];
+/// let mut v = [-5, 4, 1, -3, 2];
 ///
 /// sortrs::introsort(&mut v);
-/// assert!(v == [-5is, -3, 1, 2, 4]);
+/// assert!(v == [-5, -3, 1, 2, 4]);
 /// ```
 pub fn introsort<T: PartialOrd>(v: &mut[T]) {
     introsort_impl(v, |a, b| a.lt(b))

@@ -6,7 +6,7 @@ use sortrs::{insertsort, insertsort_by, heapsort, heapsort_by, introsort, intros
 
 #[test]
 fn test_insertsort() {
-    for len in 4us..25 {
+    for len in 4usize..25 {
         for _ in 0..100 {
             let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
             let mut v1 = v.clone();
@@ -33,8 +33,8 @@ fn test_insertsort() {
 
 #[test]
 fn test_heapsort() {
-    for len in (4us..25) {
-        for _ in (0..100) {
+    for len in 4usize..25 {
+        for _ in 0..100 {
             let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
             let mut v1 = v.clone();
 
@@ -60,7 +60,7 @@ fn test_heapsort() {
 
 #[test]
 fn test_introsort() {
-    for len in 4us..25 {
+    for len in 4usize..25 {
         for _ in 0..100 {
             let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
             let mut v1 = v.clone();
