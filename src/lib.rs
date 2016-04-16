@@ -9,11 +9,13 @@
 use std::mem;
 use std::ptr;
 
-////////////////////////////////////////////////////////////////////////////////
-// Insertion sort (based off libstd collections slice version)
-////////////////////////////////////////////////////////////////////////////////
+///
+/// Insertion sort (based off libstd collections slice version)
+///
 
-fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
+fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
+    where F: Fn(&T, &T) -> bool
+{
     // 1 <= i < len;
     for i in 1..len {
         // j satisfies: 0 <= j <= i;
@@ -47,21 +49,25 @@ fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) ->
     }
 }
 
-pub fn insertsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+pub fn insertsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
+    where F: Fn(&T, &T) -> bool
+{
     insertsort_impl(v.as_mut_ptr(), v.len() as isize, &lt);
 }
 
-pub fn insertsort<T: PartialOrd>(v: &mut[T]) {
+pub fn insertsort<T: PartialOrd>(v: &mut [T]) {
     insertsort_by(v, |a, b| a.lt(b));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Heap sort
-////////////////////////////////////////////////////////////////////////////////
+///
+/// Heap sort
+///
 
 /// Builds a heap in the array so that the largest element is at the root.
 /// Operates on data in-place.
-fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F)
+    where F: Fn(&T, &T) -> bool
+{
     // start is assigned to the index of the last parent node
     let mut start = (len - 2) / 2;
     let end = len - 1;
@@ -77,7 +83,9 @@ fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
 
 /// Repair the heap whose root element is at index start.
 /// Assumes a valid heap struture.
-fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F) where F: Fn(&T, &T) -> bool {
+fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F)
+    where F: Fn(&T, &T) -> bool
+{
     let mut root = start;
     let mut next_root = root * 2;
     // while the root has at least one child
@@ -108,13 +116,17 @@ fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F) where F: Fn(&
 }
 
 /// Internal heapsort implementation
-fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> bool {
+fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
+    where F: Fn(&T, &T) -> bool
+{
     // build the heap in-place so the largest value is at the root
     heapify(ptr, len, lt);
     let mut end = len - 1;
     while end > 0 {
         // ptr is the root and largest value, swap it to the end of the sorted elements
-        unsafe { ptr::swap(ptr.offset(end), ptr); }
+        unsafe {
+            ptr::swap(ptr.offset(end), ptr);
+        }
         // the heap size is reduced by one
         end = end - 1;
         // the swap invalidated the heap, so restore it
@@ -122,7 +134,9 @@ fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F) where F: Fn(&T, &T) -> b
     }
 }
 
-pub fn heapsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+pub fn heapsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
+    where F: Fn(&T, &T) -> bool
+{
     let len = v.len() as isize;
     if len > 0 {
         let ptr = v.as_mut_ptr();
@@ -130,13 +144,13 @@ pub fn heapsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> b
     }
 }
 
-pub fn heapsort<T: PartialOrd>(v: &mut[T]) {
+pub fn heapsort<T: PartialOrd>(v: &mut [T]) {
     heapsort_by(v, |a, b| a.lt(b));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Introspection sort
-////////////////////////////////////////////////////////////////////////////////
+///
+/// Introspection sort
+///
 
 #[inline]
 fn lg(n: usize) -> usize {
@@ -150,26 +164,23 @@ fn ptr_distance<T>(last: *const T, first: *const T) -> isize {
 }
 
 #[inline]
-fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T
+    where F: Fn(&T, &T) -> bool
+{
     unsafe {
         if lt(&*a, &*b) {
             if lt(&*b, &*c) {
                 b
-            }
-            else if lt(&*a, &*c) {
+            } else if lt(&*a, &*c) {
                 c
-            }
-            else {
+            } else {
                 a
             }
-        }
-        else if lt(&*a, &*c) {
+        } else if lt(&*a, &*c) {
             a
-        }
-        else if lt(&*b, &*c) {
+        } else if lt(&*b, &*c) {
             c
-        }
-        else {
+        } else {
             b
         }
     }
@@ -177,7 +188,8 @@ fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T where F: Fn
 
 #[inline]
 fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -> *mut T
-        where F: Fn(&T, &T) -> bool {
+    where F: Fn(&T, &T) -> bool
+{
     unsafe {
         loop {
             // find first element greater than the pivot
@@ -202,7 +214,9 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
 }
 
 #[inline]
-fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T where F: Fn(&T, &T) -> bool {
+fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T
+    where F: Fn(&T, &T) -> bool
+{
     unsafe {
         // choose a pivot based on media of 3 elements
         let pivot = median_3(ptr.offset(1), ptr.offset(len / 2), ptr.offset(len - 1), lt);
@@ -213,7 +227,9 @@ fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T where F: Fn(
     }
 }
 
-fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, lt: &F) where F: Fn(&T, &T) -> bool {
+fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, lt: &F)
+    where F: Fn(&T, &T) -> bool
+{
     // Threshold at which we stop and let the insertsort finish off
     const THRESHOLD: isize = 32;
 
@@ -235,7 +251,9 @@ fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, l
 }
 
 #[inline]
-fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+fn introsort_impl<T: PartialOrd, F>(v: &mut [T], lt: F)
+    where F: Fn(&T, &T) -> bool
+{
     let len = v.len() as isize;
     if len > 0 {
         let ptr = v.as_mut_ptr();
@@ -274,7 +292,9 @@ fn introsort_impl<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bo
 /// sortrs::introsort_by(&mut v, |a, b| b.lt(a));
 /// assert!(v == [5, 4, 3, 2, 1]);
 /// ```
-pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> bool {
+pub fn introsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
+    where F: Fn(&T, &T) -> bool
+{
     introsort_impl(v, lt);
 }
 
@@ -290,7 +310,6 @@ pub fn introsort_by<T: PartialOrd, F>(v: &mut[T], lt: F) where F: Fn(&T, &T) -> 
 /// sortrs::introsort(&mut v);
 /// assert!(v == [-5, -3, 1, 2, 4]);
 /// ```
-pub fn introsort<T: PartialOrd>(v: &mut[T]) {
+pub fn introsort<T: PartialOrd>(v: &mut [T]) {
     introsort_impl(v, |a, b| a.lt(b))
 }
-
