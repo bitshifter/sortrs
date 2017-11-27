@@ -13,7 +13,7 @@ An introspective sort implementation.
 """
 
 [dependencies]
-num = "0.1.28"
+num = "0.1"
 
 [dev-dependencies]
-rand = "0.3.12"
+rand = "0.3"

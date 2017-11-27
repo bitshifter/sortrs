@@ -14,7 +14,8 @@ use std::ptr;
 ///
 
 fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     // 1 <= i < len;
     for i in 1..len {
@@ -50,7 +51,8 @@ fn insertsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
 }
 
 pub fn insertsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     insertsort_impl(v.as_mut_ptr(), v.len() as isize, &lt);
 }
@@ -66,7 +68,8 @@ pub fn insertsort<T: PartialOrd>(v: &mut [T]) {
 /// Builds a heap in the array so that the largest element is at the root.
 /// Operates on data in-place.
 fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     // start is assigned to the index of the last parent node
     let mut start = (len - 2) / 2;
@@ -84,7 +87,8 @@ fn heapify<T, F>(ptr: *mut T, len: isize, lt: &F)
 /// Repair the heap whose root element is at index start.
 /// Assumes a valid heap struture.
 fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     let mut root = start;
     let mut next_root = root * 2;
@@ -117,7 +121,8 @@ fn shift_down<T, F>(ptr: *mut T, start: isize, end: isize, lt: &F)
 
 /// Internal heapsort implementation
 fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     // build the heap in-place so the largest value is at the root
     heapify(ptr, len, lt);
@@ -135,7 +140,8 @@ fn heapsort_impl<T, F>(ptr: *mut T, len: isize, lt: &F)
 }
 
 pub fn heapsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     let len = v.len() as isize;
     if len > 0 {
@@ -151,7 +157,6 @@ pub fn heapsort<T: PartialOrd>(v: &mut [T]) {
 ///
 /// Introspection sort
 ///
-
 #[inline]
 fn lg(n: usize) -> usize {
     mem::size_of::<usize>() * 8 - 1 - n.leading_zeros() as usize
@@ -165,7 +170,8 @@ fn ptr_distance<T>(last: *const T, first: *const T) -> isize {
 
 #[inline]
 fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     unsafe {
         if lt(&*a, &*b) {
@@ -188,7 +194,8 @@ fn median_3<T, F>(a: *mut T, b: *mut T, c: *mut T, lt: &F) -> *mut T
 
 #[inline]
 fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -> *mut T
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     unsafe {
         loop {
@@ -215,7 +222,8 @@ fn partition<T, F>(mut first: *mut T, mut last: *mut T, pivot: *mut T, lt: &F) -
 
 #[inline]
 fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     unsafe {
         // choose a pivot based on media of 3 elements
@@ -223,12 +231,13 @@ fn partition_pivot<T, F>(ptr: *mut T, len: isize, lt: &F) -> *mut T
         // swap the pivot with the first element so it's already partitioned
         ptr::swap(ptr, pivot);
         // partition elements on either side of the pivot
-        return partition(ptr.offset(1), ptr.offset(len), ptr, lt);
+        partition(ptr.offset(1), ptr.offset(len), ptr, lt)
     }
 }
 
 fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, lt: &F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     // Threshold at which we stop and let the insertsort finish off
     const THRESHOLD: isize = 32;
@@ -252,7 +261,8 @@ fn introsort_loop<T, F>(ptr: *mut T, mut last: *mut T, mut depth_limit: usize, l
 
 #[inline]
 fn introsort_impl<T: PartialOrd, F>(v: &mut [T], lt: F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     let len = v.len() as isize;
     if len > 0 {
@@ -293,7 +303,8 @@ fn introsort_impl<T: PartialOrd, F>(v: &mut [T], lt: F)
 /// assert!(v == [5, 4, 3, 2, 1]);
 /// ```
 pub fn introsort_by<T: PartialOrd, F>(v: &mut [T], lt: F)
-    where F: Fn(&T, &T) -> bool
+where
+    F: Fn(&T, &T) -> bool,
 {
     introsort_impl(v, lt);
 }

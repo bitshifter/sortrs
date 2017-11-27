@@ -8,7 +8,10 @@ use sortrs::{insertsort, insertsort_by, heapsort, heapsort_by, introsort, intros
 fn test_insertsort() {
     for len in 4usize..25 {
         for _ in 0..100 {
-            let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
+            let mut v = thread_rng()
+                .gen_iter::<usize>()
+                .take(len)
+                .collect::<Vec<usize>>();
             let mut v1 = v.clone();
 
             insertsort(&mut v);
@@ -35,7 +38,10 @@ fn test_insertsort() {
 fn test_heapsort() {
     for len in 4usize..25 {
         for _ in 0..100 {
-            let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
+            let mut v = thread_rng()
+                .gen_iter::<usize>()
+                .take(len)
+                .collect::<Vec<usize>>();
             let mut v1 = v.clone();
 
             heapsort(&mut v);
@@ -62,7 +68,10 @@ fn test_heapsort() {
 fn test_introsort() {
     for len in 4usize..25 {
         for _ in 0..100 {
-            let mut v = thread_rng().gen_iter::<usize>().take(len).collect::<Vec<usize>>();
+            let mut v = thread_rng()
+                .gen_iter::<usize>()
+                .take(len)
+                .collect::<Vec<usize>>();
             let mut v1 = v.clone();
 
             introsort(&mut v);
@@ -84,4 +93,3 @@ fn test_introsort() {
     introsort(&mut v);
     assert!(v == [0xDEADBEEF]);
 }
-
